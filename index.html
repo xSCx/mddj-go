@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>详情直达页</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 16px 32px;
+    }
+    .tip-banner {
+      width: 100%;
+      max-width: 440px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+    }
+    .tip-text {
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+    .tip-arrow {
+      font-size: 24px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: #1e293b;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 16px;
+      padding: 20px 18px;
+    }
+    .card-title {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .card-sub {
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .url-box {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      word-break: break-all;
+      resize: none;
+      margin-bottom: 14px;
+    }
+    .btn {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #ffffff;
+      background: #10b981;
+      transition: background 0.15s ease;
+    }
+    .btn.copied {
+      background: #059669;
+    }
+    .btn-secondary {
+      margin-top: 10px;
+      background: #334155;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 14px;
+    }
+    .hidden { display: none; }
+  </style>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var rawId = (params.get('id') || '').trim();
+      var id = /^\d+$/.test(rawId) ? rawId : '';
+      var base = ['https://www.', 'mddj', 'club', '.com'].join('');
+      var target = id ? (base + '/detail/' + id) : (base + '/list');
+      window.__TARGET_URL__ = target;
+      window.__IS_WECHAT__ = /MicroMessenger/i.test(navigator.userAgent || '');
+      if (!window.__IS_WECHAT__) {
+        window.location.replace(target);
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div id="wechat-ui" class="hidden" style="width:100%;max-width:440px;">
+    <div class="tip-banner">
+      <div class="tip-text">点击右上角 <strong>···</strong> → 选择「在默认浏览器中打开」即可自动直达</div>
+      <div class="tip-arrow">↗</div>
+    </div>
+
+    <div class="card">
+      <h1 class="card-title">新号直达中转页</h1>
+      <p class="card-sub">由于微信限制直接打开目标站，可点右上角跳转 Safari，或点下方按钮复制链接。</p>
+      <textarea id="url-input" class="url-box" rows="2" readonly></textarea>
+      <button id="copy-btn" class="btn" type="button">一键复制直达链接</button>
+      <button id="open-btn" class="btn btn-secondary" type="button">尝试直接跳转</button>
+    </div>
+  </div>
+
+  <div id="redirecting-ui" class="card hidden">
+    <h1 class="card-title">正在自动跳转...</h1>
+    <p class="card-sub">若未自动跳转，请点击下方按钮。</p>
+    <button id="manual-go-btn" class="btn" type="button">立即前往</button>
+  </div>
+
+  <script>
+    (function () {
+      var target = window.__TARGET_URL__ || '';
+      var wechatUi = document.getElementById('wechat-ui');
+      var redirectUi = document.getElementById('redirecting-ui');
+      var input = document.getElementById('url-input');
+      var copyBtn = document.getElementById('copy-btn');
+      var openBtn = document.getElementById('open-btn');
+      var manualBtn = document.getElementById('manual-go-btn');
+
+      input.value = target;
+
+      if (window.__IS_WECHAT__) {
+        wechatUi.classList.remove('hidden');
+      } else {
+        wechatUi.style.display = 'none';
+        redirectUi.classList.remove('hidden');
+      }
+
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        var ok = false;
+        try {
+          ok = document.execCommand('copy');
+        } catch (e) {
+          ok = false;
+        }
+        document.body.removeChild(ta);
+        return ok;
+      }
+
+      function onCopied() {
+        copyBtn.textContent = '已复制！请切到 Safari 粘贴打开';
+        copyBtn.classList.add('copied');
+      }
+
+      copyBtn.addEventListener('click', function () {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(target).then(onCopied).catch(function () {
+            if (fallbackCopy(target)) onCopied();
+          });
+        } else {
+          if (fallbackCopy(target)) onCopied();
+        }
+      });
+
+      openBtn.addEventListener('click', function () {
+        window.location.href = target;
+      });
+      manualBtn.addEventListener('click', function () {
+        window.location.replace(target);
+      });
+    })();
+  </script>
+</body>
+</html>
